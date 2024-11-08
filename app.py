@@ -1,59 +1,62 @@
-import streamlit as st
+import streamlit as st 
+import base64
 
-# Fungsi XOR Cipher
-def xor_cipher(text, key):
-    """Fungsi untuk enkripsi dan dekripsi menggunakan XOR."""
-    output = ""
-    for i in range(len(text)):
-        output += chr(ord(text[i]) ^ ord(key[i % len(key)]))
-    return output
+# Konversi karakter ke integer berdasarkan urutan ASCII
+def text_to_int(text):
+    return [ord(char) for char in text]
 
-# CSS untuk tombol
-st.markdown("""
-    <style>
-    .encrypt-button {
-        background-color: #007bff; /* Biru */
-        color: white;
-        border: none;
-        padding: 8px 20px;
-        font-size: 16px;
-        border-radius: 5px;
-        cursor: pointer;
-    }
-    .decrypt-button {
-        background-color: #4c4c4c; /* Abu-abu gelap */
-        color: white;
-        border: none;
-        padding: 8px 20px;
-        font-size: 16px;
-        border-radius: 5px;
-        cursor: pointer;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+# Konversi integer kembali ke karakter teks
+def int_to_text(integers):
+    return ''.join(chr(i) for i in integers)
 
-# Judul aplikasi
-st.title("XOR Cipher Encryption & Decryption")
+# Fungsi enkripsi menggunakan (n, e)
+def encrypt_rsa(plaintext, n, e):
+    plaintext_int = text_to_int(plaintext)
+    encrypted_int = [(char ** e) % n for char in plaintext_int]
+    # Gabungkan hasil enkripsi sebagai string dan ubah ke bytes untuk Base64
+    encrypted_str = ','.join(map(str, encrypted_int))
+    encrypted_base64 = base64.b64encode(encrypted_str.encode()).decode('utf-8')
+    return encrypted_base64
 
-# Input dari pengguna
-input_text = st.text_input("Text:")
-key = st.text_input("Key:")
+# Fungsi dekripsi menggunakan (n, d)
+def decrypt_rsa(encrypted_base64, n, d):
+    # Decode dari Base64 ke string, lalu pisahkan menjadi list angka
+    encrypted_str = base64.b64decode(encrypted_base64).decode('utf-8')
+    encrypted_int = list(map(int, encrypted_str.split(',')))
+    decrypted_int = [(char ** d) % n for char in encrypted_int]
+    return int_to_text(decrypted_int)
 
-# Tombol Enkripsi dan Dekripsi
-encrypt = st.button("Encrypt", key="encrypt", help="Klik untuk enkripsi teks", on_click=None, kwargs=None, args=None)
-decrypt = st.button("Decrypt", key="decrypt", help="Klik untuk dekripsi teks", on_click=None, kwargs=None, args=None)
+# Nilai-nilai RSA yang diberikan
+a = 109
+b = 127
+n = a * b  # 13843
+phi_n = (a - 1) * (b - 1)  # 13608
+e = 65537
+d = 4259
 
-# Proses enkripsi atau dekripsi
-if encrypt and input_text and key:
-    # Proses enkripsi dengan XOR cipher
-    result = xor_cipher(input_text, key)
-    st.subheader("Hasil Enkripsi:")
-    st.write(result)
+# Tampilan aplikasi
+st.title("Enkripsi dan Dekripsi RSA dengan Streamlit")
 
-elif decrypt and input_text and key:
-    # Proses dekripsi dengan XOR cipher
-    result = xor_cipher(input_text, key)
-    st.subheader("Hasil Dekripsi:")
-    st.write(result)
-elif not input_text or not key:
-    st.warning("Mohon masukkan teks dan kunci.")
+st.write("""
+Aplikasi ini menggunakan algoritma RSA untuk mengenkripsi dan mendekripsi teks.
+Anda bisa memasukkan teks untuk dienkripsi atau teks terenkripsi untuk didekripsi secara langsung.
+""")
+
+# Input untuk Enkripsi
+st.header("Enkripsi")
+plaintext = st.text_input("Masukkan teks untuk dienkripsi:")
+if plaintext:
+    # Enkripsi plaintext
+    encrypted_message = encrypt_rsa(plaintext, n, e)
+    st.write("Hasil Enkripsi (Base64):", encrypted_message)
+
+# Input untuk Dekripsi
+st.header("Dekripsi")
+encrypted_base64 = st.text_input("Masukkan teks terenkripsi dalam Base64:")
+if encrypted_base64:
+    try:
+        # Dekripsi ciphertext
+        decrypted_message = decrypt_rsa(encrypted_base64, n, d)
+        st.write("Hasil Dekripsi:", decrypted_message)
+    except Exception as e:
+        st.error("Gagal mendekripsi teks. Pastikan teks terenkripsi benar dan dalam format Base64.")
