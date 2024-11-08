@@ -1,5 +1,35 @@
 import streamlit as st 
 import base64
+from math import gcd
+
+def find_e(phi_n):
+    # Mulai dengan nilai umum yang sering dipakai untuk e (misalnya 3, 5, 17, atau 65537)
+    # Coba angka kecil terlebih dahulu karena lebih efisien
+    candidates = [3, 5, 17, 65537]
+    
+    # Cek kandidat pertama
+    for e in candidates:
+        if e < phi_n and gcd(e, phi_n) == 1:
+            return e
+    
+    # Jika kandidat umum tidak valid, cari nilai e lainnya dari 2 ke atas
+    for e in range(2, phi_n):
+        if gcd(e, phi_n) == 1:
+            return e
+
+def find_d(e, phi_n):
+    # Extended Euclidean Algorithm untuk menemukan d
+    t, new_t = 0, 1
+    r, new_r = phi_n, e
+    while new_r != 0:
+        quotient = r // new_r
+        t, new_t = new_t, t - quotient * new_t
+        r, new_r = new_r, r - quotient * new_r
+
+    # Pastikan d adalah nilai positif
+    if t < 0:
+        t += phi_n
+    return t
 
 # Konversi karakter ke integer berdasarkan urutan ASCII
 def text_to_int(text):
@@ -27,12 +57,14 @@ def decrypt_rsa(encrypted_base64, n, d):
     return int_to_text(decrypted_int)
 
 # Nilai-nilai RSA yang diberikan
-a = 109
-b = 127
-n = a * b  # 13843
-phi_n = (a - 1) * (b - 1)  # 13608
-e = 65537
-d = 4259
+a = 61
+b = 79
+n = a * b 
+phi_n = (a - 1) * (b - 1) 
+e = find_e(phi_n)
+print("Nilai e = ", e)
+d = find_d(e, phi_n)
+print("Nilai d = ", d)
 
 # Tampilan aplikasi
 st.title("Enkripsi dan Dekripsi RSA dengan Streamlit")
@@ -53,10 +85,17 @@ if plaintext:
 # Input untuk Dekripsi
 st.header("Dekripsi")
 encrypted_base64 = st.text_input("Masukkan teks terenkripsi dalam Base64:")
-if encrypted_base64:
+d_input = st.text_input("Masukkan nilai d (private key):")
+
+# Konversi input d ke integer jika tersedia
+if encrypted_base64 and d_input.isdigit():
+    d = int(d_input)
     try:
         # Dekripsi ciphertext
         decrypted_message = decrypt_rsa(encrypted_base64, n, d)
         st.write("Hasil Dekripsi:", decrypted_message)
     except Exception as e:
-        st.error("Gagal mendekripsi teks. Pastikan teks terenkripsi benar dan dalam format Base64.")
+        st.error("Gagal mendekripsi teks. Pastikan teks terenkripsi benar, dalam format Base64, dan nilai d valid.")
+else:
+    if encrypted_base64:
+        st.error("Masukkan nilai d yang valid untuk dekripsi.")
