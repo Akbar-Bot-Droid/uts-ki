@@ -81,6 +81,7 @@ if plaintext:
     # Enkripsi plaintext
     encrypted_message = encrypt_rsa(plaintext, n, e)
     st.write("Hasil Enkripsi (Base64):", encrypted_message)
+    st.write("Key Private: ", d)
 
 # Input untuk Dekripsi
 st.header("Dekripsi")
